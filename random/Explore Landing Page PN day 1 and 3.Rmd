@@ -1,0 +1,132 @@
+---
+title: "Working with Data in Tidyverse"
+author: "Ichsan"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    code_folding : hide
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+---
+
+<style>
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16px; 
+  border-color: #708090;
+}
+body {
+  color: #708090;
+  font-family: Calibri;
+  background-color: #ffffff;
+}
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+h1.title {
+  color: #0e2d4d;
+  font-family: Calibri;
+}
+h4.date {
+  color: #708090;  
+  font-family: Calibri;
+}
+</style>
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(fig.align = 'center', echo = TRUE)
+```
+
+```{r load package, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(skimr)
+library(kableExtra)
+```
+
+# Step One
+
+## Load data
+```{r data, warning = FALSE, message = FALSE}
+raw_data <- read_csv("bq-results-20210310-090242-q2qxhktlxsw9.csv",
+         na = c("", "NA", "N/A"),
+         col_types = cols(
+         content_groups = col_factor(levels = NULL)
+           )
+         )
+group_data <- read_csv("raw_avid_content_groups.csv",
+                       na = c("", "NA", "N/A"),
+                       col_types = cols(
+                       content_groups = col_factor(levels = NULL)
+                       )
+                      )
+
+glimpse(raw_data)
+
+unique(raw_data$content_groups)
+
+glimpse(group_data)
+
+unique(group_data$array_cg)
+
+
+```
+
+# EDA
+
+## Cek Grouping content_group and title
+
+### Top 20 TV Contents content_groups
+```{r out.width='65%'}
+raw_data %>%
+  filter(content_groups %in% c('TV Contents')) %>%
+  select(content_groups,title,watchers_this_mtd,watchers_prev_mtd) %>% 
+  arrange(desc(watchers_this_mtd)) %>%
+  head(20) %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+
+### Top 20 General Entertainment content_groups
+```{r}
+raw_data %>%
+  filter(content_groups %in% c('General Entertainment')) %>%
+  select(content_groups,title,watchers_this_mtd,watchers_prev_mtd) %>% 
+  arrange(desc(watchers_this_mtd)) %>%
+  head(20) %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+
+### Top 20 Films content_groups
+```{r}
+raw_data %>%
+  filter(content_groups %in% c('Films')) %>% 
+  select(content_groups,title,watchers_this_mtd,watchers_prev_mtd) %>% 
+  arrange(desc(watchers_this_mtd)) %>%
+  head(20) %>%
+  kbl() %>%
+  kable_paper("hover", full_width = F)
+```
+
+### Top 50 "General Entertainment,TV Contents"
+```{r warning = F}
+group_data %>%
+  filter(array_cg %in% c("General Entertainment,TV Contents")) %>%
+  select(content_groups,title,total_watchers,total_events) %>%
+  arrange(desc(total_watchers)) %>%
+  head(50) %>%
+  kbl() %>% 
+  #column_spec(1, background = ifelse(group_data$content_groups == "General Entertainment", "yellow", "white")) %>%
+  kable_paper("hover", full_width = F) %>% 
+  kable_styling(fixed_thead = T, font_size = 7)
+```
+
+
+

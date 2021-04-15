@@ -1,0 +1,451 @@
+---
+title: "Working with Data in Tidyverse"
+author: "Ichsan"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    code_folding : hide
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+---
+
+<style>
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16px; 
+  border-color: #708090;
+}
+body {
+  color: #708090;
+  font-family: Calibri;
+  background-color: #ffffff;
+}
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+h1.title {
+  color: #0e2d4d;
+  font-family: Calibri;
+}
+h4.date {
+  color: #708090;  
+  font-family: Calibri;
+}
+</style>
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(fig.align = 'center', echo = TRUE)
+```
+
+```{r load package, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(skimr)
+library(janitor)
+```
+
+# Step One
+
+## Read Data
+```{r data, warning = FALSE, message = FALSE}
+# Create bakeoff but skip first row
+bakeoff <- read_csv("https://assets.datacamp.com/production/repositories/1613/datasets/53cf6583aa659942b787897319a1ac053cbcfa5a/bakeoff.csv")
+
+# Print bakeoff
+head(bakeoff,10)
+
+# See the structure
+glimpse(bakeoff)
+```
+
+## Assign missing value
+```{r missing-value}
+# Filter rows where showstopper is UNKNOWN 
+bakeoff %>%
+  filter(showstopper == "UNKNOWN")
+
+# Edit to add list of missing values
+bakeoff_ <- read_csv("https://assets.datacamp.com/production/repositories/1613/datasets/53cf6583aa659942b787897319a1ac053cbcfa5a/bakeoff.csv", 
+                    na = c("", "NA", "UNKNOWN"))
+
+# Filter rows where showstopper is NA 
+bakeoff_ %>% filter(is.na(showstopper))
+```
+
+## Summarize the data
+```{r summarize-data}
+bakeoff_ %>% 
+  filter(!is.na(us_season)) %>% 
+  group_by(us_season)  %>% 
+  skim()
+```
+
+## Count and Distint
+```{r count-distinct}
+# Count rows for each result
+bakeoff_ %>% 
+  distinct(result) 
+bakeoff_ %>%
+  count(result, sort=TRUE) %>%
+  knitr::kable(align = "lc")
+```
+
+## Plot Counts
+```{r plot-count}
+ggplot(bakeoff, aes(episode)) + 
+    geom_bar() + 
+    facet_wrap(~series)
+```
+
+# Tame your data
+
+## Cast column
+```{r cast-to-factor}
+# Cast result a factor
+desserts <- read_csv("desserts.csv", 
+                     na = c("", "NA", "N/A"),
+                     col_types = cols(
+                       uk_airdate = col_date(format = "%d %B %Y"), #cast to date
+                       technical = col_number(), #cast to number                       
+                       result = col_factor(levels = NULL) #cast to factor
+                     )
+                    )
+
+# View parsing problems
+problems(desserts)
+
+# Glimpse to view
+glimpse(desserts)
+
+desserts %>% 
+	arrange(desc(uk_airdate))
+```
+
+## Recode column character
+```{r recode-character}
+# Count rows grouping by nut variable
+desserts %>% 
+    count(signature_nut, sort = TRUE)
+    
+# Recode filberts as hazelnuts
+desserts_2 <- desserts %>% 
+  mutate(nut = recode(signature_nut, "filbert" = "hazelnut"))
+
+# Count rows again
+desserts_2 %>% 
+    count(nut, sort = TRUE)
+```
+
+## Recode column numeric
+```{r recode-numeric}
+# Edit to recode tech_win as factor
+desserts <- desserts %>% 
+  mutate(tech_win = recode_factor(technical, `1` = 1,
+                           .default = 0))
+
+# Count to compare values                      
+desserts %>% 
+  count(technical == 1, tech_win)
+```
+
+## Recode factor to plot
+```{r message=FALSE}
+# Load data ratings
+ratings <- read_csv("02.03_messy_ratings.csv")
+
+# Recode channel as factor: bbc (1) or not (0)
+ratings <- ratings %>% 
+  mutate(bbc = recode_factor(channel, 
+                             "Channel 4" = 0,
+                             .default = 1))
+
+ratings$viewer_growth <- c(2.89,2.85,5.00,3.43,2.32,0.58, 1.7, 2.9)
+                            
+# Select to look at variables to plot next
+ratings %>% 
+  select(series, channel, bbc, viewer_growth)
+  
+# Make a filled bar chart
+ggplot(ratings, aes(x = series, y = viewer_growth, fill = bbc)) +
+  geom_col()
+```
+
+## Select and reorder variable
+```{r}
+# Move channel to front and drop 7-/28-day episode ratings
+ratings %>% 
+  select(channel, everything(), -ends_with("day"))
+```
+
+## Reformat column name
+```{r}
+ratings_ <- ratings %>%  
+  clean_names("snake")
+
+# Glimpse cleaned names
+glimpse(ratings_)
+```
+
+## Rename, reorder, and subset variable
+```{r}
+# Adapt code to also rename 7-day viewer data
+viewers_7day <- ratings_ %>% 
+    select(everything(),
+        viewers_7day_ = ends_with("7day"),
+        -ends_with("28day"))
+
+# Glimpse
+glimpse(viewers_7day)
+```
+
+# Tidy your data
+
+## Plot untidy data
+```{r message=FALSE,warning=FALSE}
+ratings_2 <- read_csv("messy_ratings.csv")
+
+# Plot of episode 1 viewers by series
+ratings_2 %>% ggplot(aes(x=series,y=e1)) + geom_col()
+
+# Adapt code to plot episode 2 viewers by series
+ggplot(ratings_2, aes(x = series, y = e2)) +
+    geom_col()
+```
+
+## Gather & Plot
+```{r}
+tidy_ratings <- ratings_2 %>%
+    # Gather and convert episode to factor
+	gather(key = "episode", value = "viewers_7day", -series, 
+           factor_key = TRUE, na.rm = TRUE) %>%
+	# Sort in ascending order by series and episode
+    arrange(series, episode) %>% 
+	# Create new variable using row_number()
+    mutate(episode_count = row_number())
+
+# Plot viewers by episode and series
+ggplot(tidy_ratings, aes(x = episode_count, 
+                y = viewers_7day, 
+                fill = series)) +
+    geom_col()
+```
+
+## Gather & plot non-sequential column
+```{r}
+messy_ratings <- read.csv("messy_ratings2.csv")
+
+week_ratings <- messy_ratings  %>% 
+	# Select 7-day viewer ratings
+    select(series, ends_with("7day")) %>% 
+	# Gather 7-day viewers by episode
+    gather(episode, viewers_7day, ends_with("7day"), na.rm = TRUE, factor_key = TRUE)
+    
+# Plot 7-day viewers by episode and series
+ggplot(week_ratings, aes(x = episode, 
+                y = viewers_7day, 
+                group = series)) +
+    geom_line() +
+    facet_wrap(~series)
+```
+
+## Separate a column
+```{r}
+# Create week_ratings
+week_ratings <- messy_ratings %>% 
+    select(series, ends_with("7day")) %>% 
+    gather(episode, viewers_7day, ends_with("7day"), 
+           na.rm = TRUE) %>% 
+    separate(episode, into = "episode", extra = "drop") %>% 
+    mutate(episode = parse_number(episode))
+    
+# Edit your code to color by series and add a theme
+ggplot(week_ratings, aes(x = episode, y = viewers_7day, 
+                         group = series, color = series)) +
+    geom_line() +
+    facet_wrap(~series) +
+    guides(color = FALSE) +
+    theme_minimal()
+```
+
+## Unite column
+```{r}
+ratings2 <- tibble(
+  series = c(1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 
+3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 
+5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 
+7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8),
+  episode = c(1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 
+7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 
+7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 
+7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+  viewers_millions = c(2, 3, 3, 2, 3, 2, 3, 3, 3, 3, 3, 4, 4, 5, 3, 4, 4, 4, 4, 4, 
+5, 5, 5, 6, 6, 6, 7, 6, 6, 7, 7, 7, 7, 9, 8, 8, 9, 10, 9, 10, 
+10, 9, 10, 13, 11, 11, 12, 12, 12, 12, 12, 11, 12, 15, 13, 13, 
+13, 13, 13, 13, 13, 13, 13, 15, 9, 9, 8, 8, 8, 8, 9, 8, 9, 10),
+  viewers_decimal = c(".24", "", "", ".6", ".03", ".75", ".1", ".53", ".82", ".6", 
+".83", ".25", ".42", ".06", ".85", ".6", ".53", ".71", ".61", 
+".82", ".1", ".35", ".7", ".74", ".6", ".65", ".17", ".82", ".95", 
+".32", ".76", ".41", ".41", ".45", ".51", ".79", ".28", ".25", 
+".95", ".13", ".28", ".02", ".67", ".51", ".62", ".59", ".01", 
+".36", ".39", "", ".35", ".09", ".65", ".05", ".58", ".45", ".01", 
+".29", ".12", ".13", ".45", ".26", ".44", ".9", ".46", ".23", 
+".68", ".55", ".61", ".61", ".01", ".95", ".03", ".04")
+)
+
+ratings3 <- ratings2  %>% 
+	# Unite and change the separator
+	unite(viewers_7day, viewers_millions, viewers_decimal, sep = "") %>%
+	# Adapt to cast viewers as a number
+	mutate(viewers_7day = as.numeric(viewers_7day))
+
+# Print to view
+ratings3
+```
+
+## Spread Row to column
+```{r}
+# Create tidy data with 7- and 28-day viewers
+tidy_ratings_all <- messy_ratings %>% 
+    gather(episode, viewers, ends_with("day"), na.rm = TRUE) %>% 
+    separate(episode, into = c("episode", "days")) %>%  
+    mutate(episode = parse_number(episode),
+           days = parse_number(days)) 
+
+tidy_ratings_all %>% 
+	# Count viewers by series and days
+    count(series, days, wt = viewers) %>%
+	# Adapt to spread counted values
+    spread(days, n, sep = "_")
+```
+
+## Masterclass Tidy
+```{r}
+# Fill in blanks to get premiere/finale data
+tidy_ratings <- ratings_2 %>%
+    gather(episode, viewers, -series, na.rm = TRUE) %>%
+    mutate(episode = parse_number(episode)) %>% 
+    group_by(series) %>% 
+    filter(episode == 1 | episode == max(episode)) %>% 
+    ungroup() %>% glimpse()
+```
+
+```{r}
+# Recode first/last episodes
+first_last <- tidy_ratings %>% 
+  mutate(episode = recode(episode, `1` = "first", .default = "last")) 
+
+# Switch the variables mapping x-axis and color
+ggplot(first_last, aes(x = series, y = viewers, color = episode )) +
+  geom_point() + # keep
+  geom_line(aes(group = series)) + # keep
+  coord_flip() # keep
+```
+
+```{r}
+# Calculate relative increase in viewers
+bump_by_series <- first_last %>% 
+  spread(episode, viewers) %>%   
+  mutate(bump = (last - first) / first)
+  
+# Fill in to make bar chart of bumps by series
+ggplot(bump_by_series, aes(x = series, y = bump)) +
+  geom_col() +
+  scale_y_continuous(labels = scales::percent) # converts to %
+```
+
+# Transform Your Data
+
+## Combine two variable
+```{r message=FALSE,warning=FALSE}
+bakers <- read_csv("baker_results.csv")
+
+head(bakers,10)
+
+glimpse(bakers)
+
+# Create skill variable with 3 levels
+bakers_skill <- bakers %>% 
+  mutate(skill = case_when(
+    star_baker > technical_winner ~ "super_star",
+    star_baker < technical_winner ~ "high_tech",
+    TRUE ~ "well_rounded"
+  ))
+
+head(bakers_skill,10)
+  
+# Filter zeroes to examine skill variable
+bakers_skill %>% 
+  filter(star_baker == 0 & technical_winner == 0) %>% 
+  count(skill)
+```
+
+## Add another bin
+```{r}
+# Add pipe to drop skill = NA
+bakers_skill_ <- bakers %>% 
+  mutate(skill = case_when(
+    star_baker > technical_winner ~ "super_star",
+    star_baker < technical_winner ~ "high_tech",
+    star_baker == 0 & technical_winner == 0 ~ NA_character_,
+    star_baker == technical_winner  ~ "well_rounded"
+  )) %>% 
+  drop_na(skill)
+
+head(bakers_skill_,10)
+
+glimpse(bakers_skill_)
+  
+# Count bakers by skill
+count(bakers_skill_,skill)
+
+```
+
+## Cast a factor and examine the levels
+```{r}
+# Cast skill as a factor
+bakers_ <- bakers_skill_ %>% 
+  mutate(skill = as.factor(skill),
+         series_winner = as.factor(series_winner))
+
+# Examine levels
+levels(bakers$skill)
+
+glimpse(bakers_)
+```
+
+## Plot factor count
+```{r}
+# Plot counts of bakers by skill, fill by winner
+ggplot(bakers_, aes(x = skill, fill = series_winner)) +
+  geom_bar()
+
+# Edit to reverse x-axis order
+ggplot(bakers_, aes(x = fct_rev(skill), fill = series_winner)) +
+  geom_bar()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

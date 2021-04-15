@@ -1,0 +1,45 @@
+---
+title: "Al- Waraqat"
+output: html_notebook
+---
+
+# Summary Ushul Fiqh
+
+Buku ushul fiqh ada 2 metode, mutakallimin (ahli filsafat) dan ahli fuqaha. 
+Fuqaha = sedikit teori banyak contoh. Tokohnya Abu Hanafiyah.
+Mutakallimin = banyak teori sedikit contoh. Pelopornya : Syafi'iyah.
+
+Al-Warakat akan banyak menggunakan metode mutakallimin.
+
+## Intisari Pembentuk Ilmu (mabdi)
+
+
+## Mukadimah Al Waraqat
+- abu mu'alli AL Juwaini punya murid bernama Al-Ghazali
+- Abu muhammad aljuwaini itu bapaknya pengarang al-warakat
+- Kitab warakat isinya tentang pengenalan pasal-pasal terkait ushul fiqh
+- Ushul fiqh disusun dari 2 bagian tersendiri, yang pertama adalah ushul dan yang kedua adalah fiqh
+
+- Jama' killah : jama' 3-9
+- jama' kasrah : jama' lebih dari 9
+
+- Al-waraqat : artinya lembaran2
+
+- Al juwaini mengungkapkan buku ini (al-warakat) dengan tujuan2 yang memudahkan mubtadi' (orang yang baru belajar), membuat orang rajin membacanya dan memahami apa yang ada didalamnya.
+
+**Dan perkataan : mengandung atas pengenalan pasal2**
+- maksudnya pengenalan2 jenis2 permasalahan, yang dinamakan pasal (pemisah), karena keterpisahan dari yang lain. (satu pasal dijelaskan sendiri2)
+
+- **Fushul** adalah jamak dari fashal, dan fashal ini potongan dari bab, yang berdiri sendiri, terpisah dari yang lain. Mengandung masalah kebanyakan. Dan bab itu lebih umum dari fashal, karena dia suatu kata untuk kalimat yang khusus dari suatu ilmu. yang didalamnya mengandung masalah kebanyakan. Dan Kitab lebih umum, karena dia adalah sebuah ishim untuk kalimat yang khusus dari suatu ilmu.
+Fushul : mengandung permasalahan2,
+bab : mengangdung fashl2,
+kitab : mengandung bab2
+
+- Sesungguhnya, penulis2 hanya melakukan pemisahan2 itu untuk membuat orang2 rajin dan membangkitkan dan menghasilkan keistiqomahan di dalam menuntut ilmu (mencari apa yang dia inginkan) yaitu kebahagiaan ketika selesai suatu pembahasan dan memulai hal yang baru.Permisalannya seperti musafir yang memotong-motong perjalanannya.
+
+**Perkataan : dari ushul fiqh**
+- Yaitu : dari bidang ilmu ini yang dinamakan dengan ushul fiqh
+
+**Perkataan : dan hal itu yang disusun dari dua bagian...sampai akhir kalimat**
+- dzalika -- Merujuk kepada ushul fiqh yakni ushul fiqh itu terdiri dari 2 bagian. Yaitu kata **ushul** dan **fiqh**. Oleh karenanya harus memiliki 2 pengertian.
+

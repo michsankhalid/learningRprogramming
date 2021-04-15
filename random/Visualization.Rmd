@@ -1,0 +1,354 @@
+---
+title: "Visualization"
+author: "Muhammad Ichsan"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    code_folding : hide
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+    toc_depth: 3
+    number_sections: true
+params:
+  country: Brazil
+  year_start: 2017-07-01
+  year_end: 2018-06-30
+  fy: 2018    
+---
+<style>
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16px; 
+  border-color: #708090;
+}
+body {
+  color: #708090;
+  font-family: Calibri;
+  background-color: #ffffff;
+}
+pre {
+  color: #708090;
+  background-color: #F8F8FF;
+}
+h1.title {
+  color: #0e2d4d;
+  font-family: Calibri;
+}
+h4.date {
+  color: #708090;  
+  font-family: Calibri;
+}
+</style>
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(fig.align = 'center', echo = TRUE)
+```
+
+# Load Data
+
+We will see the structure of data
+```{r data, message=FALSE, warning = FALSE}
+#library(readr)
+#library(dplyr)
+#library(ggplot2)
+library(knitr)
+#install.packages('devtools')
+#install.packages('ggthemr')
+#install_github('Mikata-Project/ggthemr')
+library(ggthemr)
+library(tidyverse)
+library(waffle)
+#install.packages("Hmisc")
+library(Hmisc)
+#install.packages("openair")
+library(openair)
+#install.packages("lattice")
+library(lattice)
+#library(openair)
+library(RColorBrewer)
+
+who_disease <- read_csv("https://assets.datacamp.com/production/repositories/1864/datasets/71386124a72f58a50fbc07b8254f47ef9a867ebe/who_disease.csv")
+
+head(who_disease,10)
+```
+
+And then, lets see summary statistics from the data
+```{r stat_summary}
+summary(who_disease)
+```
+
+# Create Visualization
+
+## Pie Chart
+```{r pie_chart, message = FALSE, warning = FALSE,out.width = '65%'}
+# Wrangle data into form we want. 
+disease_counts <- who_disease %>%
+    mutate(disease = ifelse(disease %in% c('measles', 'mumps'), disease, 'other')) %>%
+    group_by(disease) %>%
+    summarise(total_cases = sum(cases))
+
+ggplot(disease_counts, aes(x = 1, y = total_cases, fill = disease)) +
+	# Use a column geometry.
+	geom_col() +
+	# Change coordinate system to polar and set theta to 'y'.
+	coord_polar(theta = "y") +
+# Clean up the background with theme_void and give it a proper title with ggtitle.
+	theme_void() +
+	ggtitle('Proportion of diseases')
+```
+
+## Waffle Chart
+```{r waffle-chart, message = FALSE,out.width = '65%'}
+#install.packages("waffle")
+#library(waffle)
+
+disease_counts <- who_disease %>%
+	group_by(disease) %>%
+	summarise(total_cases = sum(cases)) %>% 
+	mutate(percent = round(total_cases/sum(total_cases)*100))
+
+# Create an array of rounded percentages for diseases.
+case_counts <- disease_counts$percent
+# Name the percentage array
+names(case_counts) <- disease_counts$disease
+
+# Pass case_counts vector to the waffle function to plot
+waffle(case_counts)
+```
+
+## Basic Barchart 100% stacked
+```{r bar-chart, message = FALSE,out.width = '65%'}
+disease_counts <- who_disease %>%
+	mutate(
+		disease = ifelse(disease %in% c('measles', 'mumps'), disease, 'other') %>% 
+		factor(levels = c('measles', 'other', 'mumps')) # change factor levels to desired ordering
+	) %>%
+	group_by(disease, year) %>%
+	summarise(total_cases = sum(cases)) 
+
+# plot
+ggplot(disease_counts, aes(x = year, y = total_cases, fill = disease)) +
+	geom_col(position = 'fill')
+```
+
+## Barchart with Categorical x-axis
+```{r bar-chart-categorical, message = FALSE,out.width = '65%'}
+disease_counts <- who_disease %>%
+	# Filter to on or later than 1999
+	filter(year >= 1999) %>% 
+	mutate(disease = ifelse(disease %in% c('measles', 'mumps'), disease, 'other')) %>%
+	group_by(disease, region) %>%    # Add region to grouping
+	summarise(total_cases = sum(cases))
+
+# Set aesthetics so disease is the stacking variable, region is the x-axis and counts are the y
+ggplot(disease_counts, aes(x = region, y = total_cases, fill = disease)) +
+	# Add a column geometry with the proper position value. 
+	geom_col(position = 'fill')
+
+```
+
+## Basic barchart - geom_col
+```{r geom-col, message = FALSE,out.width = '65%'}
+who_disease %>% 
+	# filter to india in 1980
+	filter(country == "India", year == 1980) %>% 
+	# map x aesthetic to disease and y to cases
+	ggplot(aes(x = disease, y = cases)) +
+	# use geom_col to draw
+	geom_col()
+```
+
+## Basic barchart - geom_bar
+```{r geom-bar, message = FALSE,out.width = '65%'}
+who_disease %>%
+	# filter data to observations of greater than 1,000 cases
+	filter(cases > 1000) %>%
+	# map the x-axis to the region column
+	ggplot(aes(x = region)) +
+	# add a geom_bar call
+	geom_bar()
+```
+
+## Point Chart
+```{r point-chart, message = FALSE,out.width = '65%'}
+interestingCountries <- c("NGA","SDN","FRA","NPL","MYS","TZA","YEM","UKR","BGD","VNM")
+who_subset <- who_disease %>% 
+	filter(
+		countryCode %in% interestingCountries,
+		disease == 'measles',
+		year %in% c(1992, 2002) # Modify years to 1992 and 2002
+	) %>% 
+	mutate(year = paste0('cases_', year)) %>% 
+	spread(year, cases)
+ 
+# Reorder y axis and change the cases year to 1992
+ggplot(who_subset, aes(x = log10(cases_1992), y = reorder(country, cases_1992))) +
+	geom_point()
+```
+
+## Facet Point Chart with vline
+```{r facet point, message = FALSE,out.width = '65%'}
+who_subset %>% 
+  # calculate the log fold change between 2002 and 1992
+	mutate(logFoldChange = log2(cases_2002/cases_1992)) %>% 
+	ggplot(aes(x = logFoldChange, y = reorder(country, logFoldChange))) +
+	geom_point() +
+	geom_vline(xintercept = 0) + 
+	xlim(-6,6) +
+	# add facet_grid arranged in the column direction by region and free_y scales
+	facet_grid(region~., scales = 'free_y')
+```
+
+## Flip the axis
+```{r flip the axis, message = FALSE,out.width = '65%'}
+amr_pertussis <- who_disease %>% 
+	filter(   # filter data to our desired subset
+		region == 'AMR', 
+		year == 1980, 
+		disease == 'pertussis',
+		cases > 0
+	)
+
+## geom_col
+# Set x axis as country ordered with respect to cases. 
+ggplot(amr_pertussis, aes(x = reorder(country, cases), y = cases)) +
+	geom_col() +
+	# flip axes
+	coord_flip() +
+  theme(
+	# get rid of the 'major' y grid lines
+	panel.grid.major.y = element_blank()
+	)
+
+## geom_point
+ggplot(amr_pertussis,aes(x = reorder(country, cases), y = cases)) + 
+	# switch geometry to point and set size = 2
+	geom_point(size = 2) + 
+	# change y-axis to log10. 
+	scale_y_log10() + 
+	# add theme_minimal()
+	theme_minimal() +
+	coord_flip()
+```
+
+## Faceting Geom boxplot
+This is just the code,soon will change the data
+```{r facet-geom-boxplot}
+# remove color filter
+# md_speeding %>% 
+#    ggplot(aes(x = gender, y = speed)) + 
+#    geom_jitter(alpha = 0.3, color = 'steelblue') +
+#    geom_boxplot(alpha = 0) +
+    # add a facet_wrap by vehicle_color
+#    facet_wrap(~vehicle_color) +
+    # change title to reflect new faceting
+#    labs(title = 'Speed of different car colors, separated by gender of driver')
+```
+
+## Create geom_density_ridge
+This is just the code,soon will change the data
+```{r geom-denstity-ridge}
+# md_speeding %>% 
+#    mutate(day_of_week = factor(day_of_week, levels = c("Mon","Tues","Wed","Thu","Fri","Sat","Sun") )) # %>% 
+#    ggplot(aes( x = percentage_over_limit, y = day_of_week)) + 
+#    geom_point(
+#        alpha = 0.2,  # make semi-transparent with alpha = 0.2
+#        shape = '|',  # turn points to vertical lines with shape = '|'
+#        position = position_nudge(y = -0.05) # nudge the points downward by 0.05
+#    ) +
+#    geom_density_ridges(bandwidth = 3.5, alpha = 0.7) +
+#    scale_x_continuous(limits = c(0,150), expand  = c(0,0)) +
+#    labs(subtitle = 'Guassian kernel SD = 3.5') +
+#    theme( axis.ticks.y = element_blank() )
+```
+
+## Create stat-smooth
+```{r , out.width = '65%'}
+# Amend the plot
+ggplot(mtcars, aes(x = wt, y = mpg, color = as.factor(cyl))) +
+  geom_point() +
+  # Map color to dummy variable "All"
+  stat_smooth(se = FALSE, aes(color = "All")) +
+  stat_smooth(method = "lm", se = FALSE)
+```
+
+## Create Dynamite Plot
+```{r dynamite-plor, warning = FALSE}
+# Plot wt vs. fcyl
+ggplot(mtcars, aes(x = as.factor(cyl), y = wt)) +
+  # Add a bar summary stat of means, colored skyblue
+  stat_summary(fun.y = mean, geom = "bar", fill = "skyblue") +
+  # Add an errorbar summary stat std deviation limits
+  stat_summary(fun.data = mean_sdl, fun.args = list(mult = 1), geom = "errorbar", width = 0.1)
+```
+
+## Dynamite Plot Dodging position
+```{r}
+# Define a dodge position object with width 0.9
+posn_d <- position_dodge(width = 0.9)
+
+# For each summary stat, update the position to posn_d
+ggplot(mtcars, aes(x = as.factor(cyl), y = wt, color = as.factor(am), fill = as.factor(am))) +
+  stat_summary(fun.y = mean, geom = "bar", position = posn_d, alpha = 0.5) +
+  stat_summary(fun.data = mean_sdl, fun.args = list(mult = 1), width = 0.1, position = posn_d, geom = "errorbar")
+```
+
+## Create Heat Map
+```{r heat-map}
+# A palette of 9 reds
+red_brewer_palette <- brewer.pal(9, "Reds")
+
+# Update the plot
+ggplot(barley, aes(x = year, y = variety, fill = yield)) +
+  geom_tile() + 
+  facet_wrap(facets = vars(site), ncol = 1) +
+  # Update scale to use n-colors from red_brewer_palette
+  scale_fill_gradientn(colors = red_brewer_palette)
+```
+
+## Wind rose plot
+```{r}
+# Convert to polar coordinates:
+ggplot(mydata, aes(wd, fill = ws)) +
+  geom_bar(width = 1) +
+  coord_polar(start = -pi/16)
+```
+
+## dual axis
+```{r, dual-axis}
+## From previous step
+#y_breaks <- c(59, 68, 77, 86, 95, 104)
+#y_labels <- (y_breaks - 32) * 5 / 9
+#secondary_y_axis <- sec_axis(
+#  trans = identity,
+#  name = "Celsius",
+#  breaks = y_breaks,
+#  labels = y_labels
+#)
+
+## Update the plot
+#ggplot(airquality, aes(day, Temp)) +
+#  geom_line() +
+  # Add the secondary y-axis 
+#  scale_y_continuous(sec.axis = secondary_y_axis) +
+#  labs(x = "Date (1973)", y = "Fahrenheit")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
